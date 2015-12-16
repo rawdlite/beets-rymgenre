@@ -182,15 +182,24 @@ class RymGenrePlugin(BeetsPlugin):
         rymgenre_cmd = ui.Subcommand('rymgenre', help='fetch genres from rateyourmusic.com')
         def rymgenre_func(lib, opts, args):
             write = config['import']['write'].get(bool)
-
-            for album in lib.albums(ui.decargs(args)):
+            albums  = [album for album in lib.albums(ui.decargs(args))]
+            if not albums:
+                albums = set([track.get_album() for track in lib.items(ui.decargs(args))])
+            for album in albums:
                 genres = self._get_genre(album)
                 if genres:
-                    album.genre = genres
+                    genre = genres.split(self.config['separator'].get(unicode))[0]
+                    # import pdb; pdb.set_trace()
+                    parent_genre = self.parent_genres[genre].pop()
+                    print ('genre: %s, parent: %s' % (genre,parent_genre))
+
+                    album.genre = genre
+                    album.multi_genre = genres
                     album.store()
 
                     for item in album.items():
-                        item.genre = genres
+                        item.genre = genre
+                        item.grouping = parent_genre
                         item.store()
 
                         if write:
